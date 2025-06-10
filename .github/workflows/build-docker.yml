@@ -1,0 +1,21 @@
+name: "build docker image"
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: xiaoxuan6/docker-build-action@develop
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          image-name: 'do-md5'
+          image-platform: linux/arm64,linux/amd64
+          extract-git-tag: true

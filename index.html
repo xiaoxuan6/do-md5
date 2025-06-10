@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="keywords"
+          content="md5免费破解,搜Md5,md5加密,md5解密,md5批量破解,sha1密码破解,mysql密码破解,dedecms密码破解,Discuz密码破解,mssql(2012) hash,ntlm hash"/>
+    <meta name="description"
+          content="MD5在线免费破解,支持md5,sha1,mysql,sha256,sha512,md5(base64),sha1(base64),md5(wordpress),md5(Phpbb3),md5(Unix),des(Unix)等数十种加密方式"/>
+    <title>MD5免费在线解密破解_MD5在线加密-DOMD5</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon"/>
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #f5f5f5
+        }
+
+        .main {
+            width: 700px;
+            height: 400px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -250px;
+            margin-left: -350px
+        }
+
+        .main-panel {
+            margin-top: 80px
+        }
+
+        .text-wrap {
+            width: 500px;
+            min-height: 100px;
+            margin: 30px auto;
+            padding: 20px 0;
+            position: relative;
+            clear: both;
+            font-family: SimHei, serif;
+            font-size: 50px;
+            text-align: center;
+            color: #5CB85C;
+            font-weight: 600
+        }
+
+        #footer nav {
+            background-color: #dedede
+        }
+
+        img {
+            position: absolute;
+            width: 150px
+        }
+    </style>
+</head>
+<body>
+<div class="main">
+    <div class="row">
+        <div class="col-md-14">
+            <div class="text-wrap">
+                输入有效的MD5
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <form id="decryptForm">
+            <div class="col-lg-12">
+                <div class="input-group input-group-lg">
+                    <input type="text" id="hash" class="form-control" aria-label="..." name="hash">
+                    <div class="input-group-btn">
+                        <button type="submit" id="submitBtn" class="btn btn-success btn-lg search-btn"><b>解密</b>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="row main-panel">
+            <div class="col-md-1">
+            </div>
+            <div class="col-md-10">
+                <div id="color" class="panel panel-success">
+                    <div class="panel-heading" id="ti">
+                        查不到怎么办？
+                    </div>
+                    <div class="panel-body" id="result"
+                         style="word-wrap:break-word; word-break:break-all;display:block">
+                        <small>后台解密在数分钟内开始, 一分钟内能解开大部分查不到的密文</small>
+                        <br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/static/js/main.js"></script>
+<script>
+    const API_BASE_URL = '';
+
+    document.getElementById('decryptForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const result = document.getElementById('result');
+        const color = document.getElementById('color');
+        const hash = document.getElementById('hash').value;
+
+        document.getElementById('ti').innerHTML = '结果';
+        if (hash.length !== 32) {
+            color.className = 'panel panel-danger';
+            result.innerHTML = '请输入正确的MD5字符串';
+            document.getElementById('hash').focus()
+            return
+        }
+
+        submitBtn.disabled = true;
+        result.innerHTML = '解密中...';
+        color.className = 'panel panel-success';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/decrypt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hash: hash,
+                    sign: encode(hash)
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.success === false) {
+                throw new Error(data.result || '解密失败');
+            }
+
+            color.className = 'panel panel-success';
+            result.innerHTML = data.result;
+        } catch (error) {
+            color.className = 'panel panel-danger';
+            result.innerHTML = error.message;
+        } finally {
+            submitBtn.disabled = false;
+        }
+    })
+</script>
+</html>
