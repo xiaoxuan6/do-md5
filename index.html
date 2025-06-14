@@ -128,7 +128,7 @@
                 },
                 body: JSON.stringify({
                     hash: hash,
-                    sign: encode(hash)
+                    sign: btoa(encode(hash))
                 })
             });
 

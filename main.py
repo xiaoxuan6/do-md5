@@ -5,9 +5,9 @@
  @File: main.py
  @Description: 
 """
+import base64
 import binascii
 import json
-import os
 import random
 import time
 
@@ -78,6 +78,7 @@ def pmd5(hash: str):
         'user-agent': UserAgent().chrome,
     }
 
+    num = 0
     se.get("https://pmd5.com")
     while True:
         captcha_img = se.get(f"https://api.pmd5.com/pmd5api/checkcode?_{random.random()}", headers=headers).content
@@ -93,7 +94,9 @@ def pmd5(hash: str):
                 success = True if response['result'] is not None else False
                 return ApiResponse(success=success, result=result)
             else:
-                return ApiResponse(success=False, result='解密失败')
+                if num == 3:
+                    return ApiResponse(success=False, result='解密失败')
+                num += 1
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -117,6 +120,7 @@ async def decrypt(request: DecryptRequest):
         if sign is None or len(sign) == 0:
             return ApiResponse(success=False, result='sign 不能为空')
 
+        sign = base64.b64decode(sign).decode('utf-8')
         _sign = str(sign).split("|")
         if int(time.time() * 1000) - int(_sign[1]) > 3000:
             return ApiResponse(success=False, result='sign 已过期')
