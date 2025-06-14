@@ -11,7 +11,8 @@ RUN apt-get update && \
     echo $TZ > /etc/timezone && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* \
+    rm -rf /var/lib/apt/lists/* && \
+    chmod +x captcha.png
 
 EXPOSE 8000
 
