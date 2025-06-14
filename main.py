@@ -46,7 +46,7 @@ class ApiResponse(BaseModel):
     result: str = None
 
 
-async def encode(hash, t):
+def encode(hash, t):
     data = {
         "timestamp": t,
         "hash": hash
@@ -66,12 +66,12 @@ async def encode(hash, t):
     return binascii.hexlify(ct_bytes).decode('utf-8')
 
 
-async def decrypt_captcha(img: str):
+def decrypt_captcha(img: str):
     ocr = ddddocr.DdddOcr(show_ad=False, beta=True)
     return ocr.classification(open(img, 'rb').read())
 
 
-async def pmd5(hash: str):
+def pmd5(hash: str):
     se = requests.session()
 
     headers = {
@@ -88,6 +88,7 @@ async def pmd5(hash: str):
         if len(text) == 4:
             os.remove('captcha.png')
             response = se.get(f"https://api.pmd5.com/pmd5api/pmd5?checkcode={text}&pwd={hash}", headers=headers).json()
+            print(response)
             if response['code'] == 0:
                 result = response['result'][hash] if response['result'] is not None else '解密失败'
                 success = True if response['result'] is not None else False
@@ -126,7 +127,7 @@ async def decrypt(request: DecryptRequest):
 
         return pmd5(hash)
     except Exception as e:
-        return {"success": False, "detail": str(e)}
+        return ApiResponse(success=False, result=str(e))
 
 
 if __name__ == '__main__':
