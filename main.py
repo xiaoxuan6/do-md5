@@ -118,7 +118,7 @@ async def decrypt(request: DecryptRequest):
             return ApiResponse(success=False, result='sign 不能为空')
 
         _sign = str(sign).split("|")
-        if int(time.time() * 1000) - int(_sign[1]) > 1000:
+        if int(time.time() * 1000) - int(_sign[1]) > 3000:
             return ApiResponse(success=False, result='sign 已过期')
 
         if _sign[0] != encode(hash, str(_sign[1])):
