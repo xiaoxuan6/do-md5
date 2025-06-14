@@ -86,7 +86,6 @@ def pmd5(hash: str):
 
         text = decrypt_captcha('captcha.png')
         if len(text) == 4:
-            os.remove('captcha.png')
             response = se.get(f"https://api.pmd5.com/pmd5api/pmd5?checkcode={text}&pwd={hash}", headers=headers).json()
             print(response)
             if response['code'] == 0:
