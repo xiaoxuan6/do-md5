@@ -12,7 +12,7 @@ RUN apt-get update && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    chmod +x captcha.png
+    chmod 0777 captcha.png
 
 EXPOSE 8000
 
