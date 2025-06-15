@@ -17,7 +17,7 @@ import uvicorn
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from fake_useragent import UserAgent
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -66,37 +66,9 @@ def encode(hash, t):
     return binascii.hexlify(ct_bytes).decode('utf-8')
 
 
-def decrypt_captcha(img: str):
+async def decrypt_captcha(img: str):
     ocr = ddddocr.DdddOcr(show_ad=False, beta=True)
     return ocr.classification(open(img, 'rb').read())
-
-
-def pmd5(hash: str):
-    se = requests.session()
-
-    headers = {
-        'user-agent': UserAgent().chrome,
-    }
-
-    num = 0
-    se.get("https://pmd5.com")
-    while True:
-        captcha_img = se.get(f"https://api.pmd5.com/pmd5api/checkcode?_{random.random()}", headers=headers).content
-        with open('captcha.png', 'wb') as f:
-            f.write(captcha_img)
-
-        text = decrypt_captcha('captcha.png')
-        if len(text) == 4:
-            response = se.get(f"https://api.pmd5.com/pmd5api/pmd5?checkcode={text}&pwd={hash}", headers=headers).json()
-            print(response)
-            if response['code'] == 0:
-                result = response['result'][hash] if response['result'] is not None else '解密失败'
-                success = True if response['result'] is not None else False
-                return ApiResponse(success=success, result=result)
-            else:
-                if num == 3:
-                    return ApiResponse(success=False, result='解密失败')
-                num += 1
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -109,26 +81,54 @@ async def index():
     return FileResponse('index.html')
 
 
-@app.post('/api/decrypt', response_model=ApiResponse)
+async def CheckSignMiddleware(request: Request):
+    json_data = await request.json()
+    if len(json_data['hash']) != 32:
+        return ApiResponse(success=False, result='请输入正确的MD5字符串')
+
+    sign = json_data['sign']
+    if sign is None or len(sign) == 0:
+        return ApiResponse(success=False, result='sign 不能为空')
+
+    sign = base64.b64decode(sign).decode('utf-8')
+    _sign = str(sign).split("|")
+    if int(time.time() * 1000) - int(_sign[1]) > 3000:
+        return ApiResponse(success=False, result='sign 已过期')
+
+    if _sign[0] != encode(json_data['hash'], str(_sign[1])):
+        return ApiResponse(success=False, result='无效的 sign')
+
+
+@app.post('/api/decrypt', response_model=ApiResponse, dependencies=[Depends(CheckSignMiddleware)])
 async def decrypt(request: DecryptRequest):
     try:
-        hash = request.hash
-        if len(hash) != 32:
-            return ApiResponse(success=False, result='请输入正确的MD5字符串')
+        se = requests.session()
 
-        sign = request.sign
-        if sign is None or len(sign) == 0:
-            return ApiResponse(success=False, result='sign 不能为空')
+        headers = {
+            'user-agent': UserAgent().chrome,
+        }
 
-        sign = base64.b64decode(sign).decode('utf-8')
-        _sign = str(sign).split("|")
-        if int(time.time() * 1000) - int(_sign[1]) > 3000:
-            return ApiResponse(success=False, result='sign 已过期')
+        num = 0
+        se.get("https://pmd5.com")
+        while True:
+            re = se.get(f"https://api.pmd5.com/pmd5api/checkcode?_{random.random()}", headers=headers)
+            se.cookies.update(re.cookies.get_dict())
+            with open('captcha.png', 'wb') as f:
+                f.write(re.content)
 
-        if _sign[0] != encode(hash, str(_sign[1])):
-            return ApiResponse(success=False, result='无效的 sign')
-
-        return pmd5(hash)
+            text = await decrypt_captcha('captcha.png')
+            if len(text) == 4:
+                response = se.get(f"https://api.pmd5.com/pmd5api/pmd5?checkcode={text}&pwd={request.hash}",
+                                  headers=headers).json()
+                print(response)
+                if response['code'] == 0:
+                    result = response['result'][request.hash] if response['result'] else '解密失败'
+                    success = True if response['result'] else False
+                    return ApiResponse(success=success, result=result)
+                else:
+                    if num == 3:
+                        return ApiResponse(success=False, result='解密失败')
+                    num += 1
     except Exception as e:
         return ApiResponse(success=False, result=str(e))
 
